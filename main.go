@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,6 +19,8 @@ func main() {
 		switch args[0] {
 		case "create":
 			runCreate(args[1:])
+		case "execute":
+			runExecute(args[1:])
 		case "help", "-h", "--help":
 			usage()
 		default:
@@ -36,6 +39,7 @@ func usage() {
 Usage:
   spark                 start the webhook server
   spark create <name>   scaffold empty config files for a project under $HOME/.spark/<name>
+  spark execute <name>  immediately run the project <name>
   spark help            show this help
 `)
 }
@@ -65,6 +69,30 @@ func runCreate(args []string) {
 	}
 	for _, p := range created {
 		fmt.Printf("  created %s\n", p)
+	}
+}
+
+// runExecute immediately runs a project's scripts, mirroring what the webhook
+// server does on a push, but synchronously from the command line.
+func runExecute(args []string) {
+	if len(args) != 1 || args[0] == "" {
+		fmt.Fprintln(os.Stderr, "usage: spark execute <project>")
+		os.Exit(2)
+	}
+	project := args[0]
+
+	sparkDir, err := config.Dir()
+	if err != nil {
+		log.Fatalf("resolve spark dir: %v", err)
+	}
+
+	r := runner.New(sparkDir)
+	if !r.HasProject(project) {
+		log.Fatalf("project %q not found under %s (run: spark create %s)", project, sparkDir, project)
+	}
+
+	if err := r.Run(context.Background(), project); err != nil {
+		log.Fatalf("project %q failed: %v", project, err)
 	}
 }
 
