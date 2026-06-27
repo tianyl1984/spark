@@ -1,0 +1,4 @@
+{
+  "port": 8010,
+  "secret": "your-github-webhook-secret"
+}

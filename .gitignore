@@ -1,0 +1,22 @@
+# Binaries
+/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary and coverage
+*.test
+*.out
+coverage.*
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Env and editor
+.env
+.env.local
+.idea/
+.vscode/
+.DS_Store
