@@ -18,8 +18,10 @@ const (
 	failFile    = "fail.sh"
 )
 
-// projectFiles are all fixed file names created when scaffolding a project.
-var projectFiles = []string{executeFile, workdirFile, successFile, failFile}
+// projectFiles are the fixed file names created when scaffolding a project.
+// success.sh / fail.sh are intentionally omitted: a project may define its own,
+// otherwise the global $HOME/.spark/{success,fail}.sh fallback is used.
+var projectFiles = []string{executeFile, workdirFile}
 
 // Scaffold creates the project folder under sparkDir and the fixed (empty)
 // config files. Existing files are left untouched. It returns the paths that
@@ -113,22 +115,38 @@ func (r *Runner) resolveWorkdir(projectDir string) string {
 }
 
 // runHook runs success.sh / fail.sh if it exists and is non-empty, passing the
-// execute.sh output as a single argument.
+// execute.sh output as a single argument. When the project has no usable hook
+// (missing or empty), it falls back to a global hook of the same name placed
+// directly under $HOME/.spark.
 func (r *Runner) runHook(ctx context.Context, project, projectDir, name, workdir, output string) {
-	path := filepath.Join(projectDir, name)
-	info, err := os.Stat(path)
-	if err != nil || info.IsDir() || info.Size() == 0 {
+	path, ok := r.resolveHook(projectDir, name)
+	if !ok {
 		log.Printf("[%s] skipping %s (missing or empty)", project, name)
 		return
 	}
 
-	log.Printf("[%s] running %s", project, name)
+	log.Printf("[%s] running %s", project, path)
 	hookOut, hookErr := runScript(ctx, path, workdir, output)
 	if hookErr != nil {
 		log.Printf("[%s] %s failed: %v\n%s", project, name, hookErr, strings.TrimRight(hookOut, "\n"))
 		return
 	}
 	log.Printf("[%s] %s done", project, name)
+}
+
+// resolveHook returns the path to the hook script to run for name, preferring
+// the project's own hook and falling back to the global one under $HOME/.spark.
+// The second return value is false when neither exists as a non-empty file.
+func (r *Runner) resolveHook(projectDir, name string) (string, bool) {
+	for _, path := range []string{
+		filepath.Join(projectDir, name),
+		filepath.Join(r.SparkDir, name),
+	} {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() && info.Size() > 0 {
+			return path, true
+		}
+	}
+	return "", false
 }
 
 // runScript runs a bash script with optional extra args, returning combined

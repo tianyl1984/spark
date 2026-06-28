@@ -8,6 +8,7 @@ set -euo pipefail
 
 URL="http://127.0.0.1:3001/api/sendNotify"
 MSG="${1:-execute failed}"
+MSG="${MSG: -200}"
 
 # JSON-escape the message so newlines/quotes in the output don't break the body.
 if command -v jq >/dev/null 2>&1; then

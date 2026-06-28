@@ -45,10 +45,17 @@ Fixed file names inside a project folder:
 The combined stdout+stderr of `execute.sh` is passed to `success.sh` / `fail.sh`
 as their **first argument** (`$1`).
 
+#### Global `success.sh` / `fail.sh` fallback
+
+You can place `success.sh` and/or `fail.sh` directly under `$HOME/.spark` to act
+as shared defaults across every project. When a project has no usable hook of
+that name (missing or empty), the global one at `$HOME/.spark/<name>` runs
+instead. A project's own non-empty hook always takes precedence.
+
 Scaffold a new project's empty files with:
 
 ```bash
-spark create <repo-name>      # creates $HOME/.spark/<repo-name>/{execute.sh,workdir,success.sh,fail.sh}
+spark create <repo-name>      # creates $HOME/.spark/<repo-name>/{execute.sh,workdir}
 ```
 
 Existing files are never overwritten. Then fill in `execute.sh` and `workdir`.
@@ -58,6 +65,8 @@ Example layout:
 ```
 $HOME/.spark/
 ├── config.json
+├── success.sh         # optional global default, used when a project has none
+├── fail.sh            # optional global default, used when a project has none
 └── spark/
     ├── execute.sh      # e.g. git pull && make build && systemctl restart spark
     ├── workdir         # e.g. /srv/spark
